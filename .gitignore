@@ -1,2 +1,5 @@
 # Ignore datasets
 datasets/
+
+# Ignore solutions
+**/solutions/
