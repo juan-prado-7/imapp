@@ -3,3 +3,5 @@ datasets/
 
 # Ignore solutions
 **/solutions/
+**/plots/
+**/models/
