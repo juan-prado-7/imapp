@@ -41,11 +41,8 @@ def train_nn(train_loader, val_loader, model, loss_fn, optimizer, num_epochs, pa
             # set the gradients to zero
             optimizer.zero_grad()
 
-            # make a prediction with the current model
-            predictions = model(batch_x)
-
-            # calculate the loss based on the prediction
-            loss = loss_fn(predictions, batch_y)
+            # calculate the loss 
+            loss = loss_fn(batch_x, batch_y, model)
 
             # calculated the gradients for the given loss
             loss.backward()
@@ -76,11 +73,8 @@ def train_nn(train_loader, val_loader, model, loss_fn, optimizer, num_epochs, pa
                 # move the batch to the same device as the model
                 batch_x, batch_y = batch_x.to(device), batch_y.to(device)
 
-                # make a prediction with the current model
-                predictions = model(batch_x)
-
-                # calculate the loss based on the prediction
-                loss = loss_fn(predictions, batch_y)
+                # calculate the loss
+                loss = loss_fn(batch_x, batch_y, model)
 
                 # calculate loss per batch
                 val_loss += loss.item()
@@ -94,7 +88,7 @@ def train_nn(train_loader, val_loader, model, loss_fn, optimizer, num_epochs, pa
         sys.stdout.write(f"\rEpoch [{epoch + 1}/{num_epochs}], Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, Time: {epoch_time:.2f} seconds\n")
         sys.stdout.flush()
 
-        if(patience):
+        if(patience is not None):
             # Early stopping check
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
@@ -102,7 +96,7 @@ def train_nn(train_loader, val_loader, model, loss_fn, optimizer, num_epochs, pa
             else:
                 patience_counter += 1
                 if patience_counter >= patience:
-                    print("\nEarly stopping triggered.")
+                    print("Early stopping triggered.")
                     break
 
     print("Training complete.")
@@ -111,7 +105,7 @@ def train_nn(train_loader, val_loader, model, loss_fn, optimizer, num_epochs, pa
 
 
 # Plot training/validation loss
-def plot_losses(train_losses, val_losses):
+def plot_losses(train_losses, val_losses, PATH=None):
     fig, ax = plt.subplots(layout="constrained")
 
     ax.plot(train_losses, label="Train Loss")
@@ -121,8 +115,10 @@ def plot_losses(train_losses, val_losses):
     ax.set(
         xlabel="Epochs",
         ylabel="Loss",
-        title="Training and Validation Loss",
     )
+
+    if PATH is not None:
+        fig.savefig(PATH, dpi=300)
 
     return
 
@@ -145,7 +141,7 @@ def test_nn(test_loader, model, loss_fn, device='cpu'):
             y_test_pred = np.append(y_test_pred, predictions.cpu().numpy())
 
             # calculate the loss based on the prediction
-            loss = loss_fn(predictions, batch_y)
+            loss = loss_fn(batch_x, batch_y, model)
 
             # calulate loss per batch
             test_loss += loss.item()

@@ -77,11 +77,11 @@ def create_dataloaders(X_train, X_val, X_test, y_train, y_val, y_test, spectra_l
     return train_loader, val_loader, test_loader
 
 # Scatter plot of predicted values vs true values
-def plot_predicter_vs_true(labels, labels_pred, n_labels, label_names, units=None, errors=None):
+def plot_predicted_vs_true(labels, labels_pred, n_labels, label_names, units=None, errors=None, PATH=None):
     plt.figure(figsize=(12, 4))
     for i in range(n_labels):
         plt.subplot(1, n_labels, i+1)
-        if (errors.any()):
+        if errors is not None:
             plt.errorbar(labels[:, i], labels_pred[:, i], yerr=errors[:, i],
                     fmt='o', markersize=3, capsize=2, alpha=0.3)
         else:
@@ -95,6 +95,10 @@ def plot_predicter_vs_true(labels, labels_pred, n_labels, label_names, units=Non
             plt.ylabel(f"Predictions ({units[i]})")
         plt.title(label_names[i])
     plt.tight_layout()
+
+    if PATH is not None:
+        plt.savefig(PATH, dpi=300)
+
     plt.show()
 
     return
@@ -102,21 +106,49 @@ def plot_predicter_vs_true(labels, labels_pred, n_labels, label_names, units=Non
 from scipy.stats import norm
 
 # Plot pull distribution
-def plot_pull_distribution(labels, labels_pred, n_labels, label_names, errors):
+def plot_pull_distribution(labels, labels_pred, n_labels, label_names, errors, PATH=None):
     residuals = (labels - labels_pred) / errors
-    t = np.linspace(-3, 3, 100)
 
     plt.figure(figsize=(12, 4))
     for i in range(n_labels):
         plt.subplot(1, n_labels, i+1)
         mu_fit = np.mean(residuals[:, i])
         std_fit = np.std(residuals[:, i])
-        plt.hist(residuals[:, i], range=[-3, 3], bins=30, alpha=0.7, density=True)
+        plt.hist(residuals[:, i], bins=30, alpha=0.7, density=True)
+        t = np.linspace(-4*std_fit, 4*std_fit, 100)
         plt.plot(t, norm.pdf(t, mu_fit, std_fit), color='r', linewidth=1,
                 label=rf'$\mu={mu_fit:.2f}${'\n'}$\sigma={std_fit:.2f}$')
         plt.legend()
         plt.xlabel("Residuals/Uncertainties")
         plt.title(label_names[i])
     plt.tight_layout()
+
+    if PATH is not None:
+        plt.savefig(PATH, dpi=300)
+
+    plt.show()
+    
+    return
+
+def get_quantiles(test_loader, model, device='cpu'):
+    quantiles = np.array([])
+
+    with torch.no_grad():
+        for batch_x, batch_y in test_loader:
+            batch_x, batch_y = batch_x.to(device), batch_y.to(device)
+            quantiles = np.append(quantiles, model.get_quantiles(batch_x, batch_y))
+
+    return quantiles
+
+def plot_coverage_test(quantiles, PATH=None):
+    plt.figure()
+    plt.hist(quantiles, bins=30, density=True)
+    plt.xlabel('Quantile')
+    plt.ylabel('Probability')
+    plt.plot([0, 1], [1, 1], color='red', ls='--')
+
+    if PATH is not None:
+        plt.savefig(PATH, dpi=300)
+
     plt.show()
     return
